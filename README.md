@@ -3,9 +3,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Static Badge](https://img.shields.io/badge/Project-Page-a)](https://cccedric.github.io/conrft/)
 
-**Webpage: [https://cccedric.github.io/conrft/](https://cccedric.github.io/conrft/)**
-
-This is the official implementation of the paper "ConRFT: A Reinforced Fine-tuning Method for VLA Models via Consistency Policy". We provide examples to fine-tune Octo, on the top of [HIL-SERL](https://github.com/rail-berkeley/hil-serl) that provides the base environment to perform robotic manipulation tasks with human interventions. The following sections describe how to use our code. 
+We provide examples to fine-tune Octo, on the top of [HIL-SERL](https://github.com/rail-berkeley/hil-serl) that provides the base environment to perform robotic manipulation tasks with human interventions. The following sections describe how to use our code. 
 
 
 **Table of Contents**
@@ -14,7 +12,7 @@ This is the official implementation of the paper "ConRFT: A Reinforced Fine-tuni
   - [💻 Overview and Code Structure](#-overview-and-code-structure)
   - [✉️ Contact](#️-contact)
   - [🙏 Acknowledgement](#-acknowledgement)
-  - [Citation](#citation)
+  - [📝 Citation](#-citation)
 
 ## 🛠️ Installation Instructions
 1. **Setup Conda Environment:**
@@ -86,7 +84,7 @@ For any questions, please feel free to email [chenyuhui2022@ia.ac.cn](mailto:che
 ## 🙏 Acknowledgement
 Our code is built upon [CPQL](https://github.com/cccedric/cpql/), [Octo](https://github.com/octo-models/octo), [HIL-SERL](https://github.com/rail-berkeley/hil-serl). We thank all these authors for their nicely open sourced code and their great contributions to the community.
 
-## Citation
+## 📝 Citation
 
 If you find our research helpful and would like to reference it in your work, please consider the following citations:
 
