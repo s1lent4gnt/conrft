@@ -12,7 +12,6 @@ This is the official implementation of the paper "ConRFT: A Reinforced Fine-tuni
 - [ConRFT: A Reinforced Fine-tuning Method for VLA Models via Consistency Policy](#conrft-a-reinforced-fine-tuning-method-for-vla-models-via-consistency-policy)
   - [🛠️ Installation Instructions](#️-installation-instructions)
   - [💻 Overview and Code Structure](#-overview-and-code-structure)
-  - [Run with Franka Arm](#run-with-franka-arm)
   - [✉️ Contact](#️-contact)
   - [🙏 Acknowledgement](#-acknowledgement)
   - [Citation](#citation)
@@ -43,6 +42,7 @@ This is the official implementation of the paper "ConRFT: A Reinforced Fine-tuni
 
 3. **Install the Octo**
     ```bash
+    git clone git@github.com:octo-models/octo.git
     cd octo
     pip install -e .
     pip install -r requirements.txt
@@ -77,8 +77,6 @@ We offers a set of code for fine-tuning Octo in robotic manipulation tasks. The 
 | serl_robot_infra | Robot infra for running with real robots |
 | serl_robot_infra.robot_servers | Flask server for sending commands to robot via ROS |
 | serl_robot_infra.franka_env | Gym env for Franka robot |
-
-## Run with Franka Arm
 
 We provide a step-by-step guide in [franka_walkthrough](/docs/franka_walkthrough.md) to fine-tune VLA with ConRFT on a Franka robot.
 
