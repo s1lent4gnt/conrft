@@ -67,7 +67,7 @@ We offers a set of code for fine-tuning Octo in robotic manipulation tasks. The 
 | Code Directory | Description |
 | --- | --- |
 | examples | Scripts for policy training, demonstration data collection, reward classifier training |
-| serl_launcher | Main code for HIL-SERL |
+| serl_launcher | Main code for Agent Training |
 | serl_launcher.agents | Agent Policies (e.g. SAC, BC) |
 | serl_launcher.wrappers | Gym env wrappers |
 | serl_launcher.data | Replay buffer and data store |
