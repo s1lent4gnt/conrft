@@ -31,20 +31,16 @@ We provide examples to fine-tune Octo, on the top of [HIL-SERL](https://github.c
         ```bash
         pip install --upgrade "jax[cuda11_pip]==0.4.20" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
         ```
-
-    - For TPU
-        ```bash
-        pip install --upgrade "jax[tpu]" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
-        ```
     - See the [Jax Github page](https://github.com/google/jax) for more details on installing Jax.
 
 3. **Install the Octo**
     ```bash
-    git clone git@github.com:octo-models/octo.git
+    git clone git@github.com:cccedric/octo.git
     cd octo
     pip install -e .
     pip install -r requirements.txt
     ```
+    **Note**: This is a personalized fork of Octo, adding custom functions while preserving its core capabilities for general-purpose robotic manipulation.
 
 4. **Install the serl_launcher**
     ```bash
