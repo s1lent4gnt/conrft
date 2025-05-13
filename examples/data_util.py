@@ -8,13 +8,13 @@ def calc_return_to_go(rewards, terminals, gamma, reward_scale, reward_bias, rewa
     """
     if len(rewards) == 0:
         return np.array([])
-    
+
     if is_sparse_reward:
         reward_neg = reward_neg * reward_scale + reward_bias
     else:
         assert not is_sparse_reward, "If you want to try on a sparse reward env, please add the reward_neg value in the ENV_CONFIG dict."
 
-    if is_sparse_reward and np.all(np.array(rewards) == reward_neg): 
+    if is_sparse_reward and np.all(np.array(rewards) == reward_neg):
         """
         If the env has sparse reward and the trajectory is all negative rewards,
         we use r / (1-gamma) as return to go.
@@ -26,7 +26,8 @@ def calc_return_to_go(rewards, terminals, gamma, reward_scale, reward_bias, rewa
         return_to_go = [0] * len(rewards)
         prev_return = 0
         for i in range(len(rewards)):
-            return_to_go[-i-1] = rewards[-i-1] + reward_neg * prev_return * (1 - terminals[-i-1])
+            return_to_go[-i-1] = rewards[-i-1] + gamma * \
+                prev_return * (1 - terminals[-i-1])
             prev_return = return_to_go[-i-1]
 
     return np.array(return_to_go, dtype=np.float32)
@@ -46,7 +47,7 @@ def add_mc_returns_to_trajectory(trajectory, gamma, reward_scale, reward_bias, r
         gamma=gamma,
         reward_scale=reward_scale,
         reward_bias=reward_bias,
-        reward_neg=reward_neg, 
+        reward_neg=reward_neg,
         is_sparse_reward=is_sparse_reward,
     )
 
@@ -63,27 +64,29 @@ def add_embeddings_to_trajectory(trajectory, model, tasks):
     """
     for i in range(len(trajectory)):
         observation = trajectory[i]['observations']
-        
+
         image_primary = observation["side_policy_256"]
         image_wrist = observation["wrist_1"]
         # Add batch dimension
         image_primary = image_primary[np.newaxis, ...]
         image_wrist = image_wrist[np.newaxis, ...]
-        timestep_pad_mask =  np.array([[True, True]])
-        
+        timestep_pad_mask = np.array([[True, True]])
+
         observation = {"image_primary": image_primary,
-            "image_wrist": image_wrist, 
-            "timestep_pad_mask": timestep_pad_mask,
-        }
-        
+                       "image_wrist": image_wrist,
+                       "timestep_pad_mask": timestep_pad_mask,
+                       }
+
         action_embeddings = model.sample_transformer(observation, tasks,)
         # Now, action_embeddings is (batch_size, window_size, embedding_size)
-        
-        action_embeddings = action_embeddings[:, -1, :] # remove window_size dimension
-        
+
+        # remove window_size dimension
+        action_embeddings = action_embeddings[:, -1, :]
+
         trajectory[i]['embeddings'] = action_embeddings
 
     return trajectory
+
 
 def add_next_embeddings_to_trajectory(trajectory):
     """
@@ -97,5 +100,3 @@ def add_next_embeddings_to_trajectory(trajectory):
             trajectory[i]['next_embeddings'] = trajectory[i+1]['embeddings']
 
     return trajectory
-
-
