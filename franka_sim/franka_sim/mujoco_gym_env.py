@@ -10,8 +10,8 @@ import numpy as np
 
 @dataclass(frozen=True)
 class GymRenderingSpec:
-    height: int = 128
-    width: int = 128
+    height: int = 256
+    width: int = 256
     camera_id: str | int = -1
     mode: Literal["rgb_array", "human"] = "rgb_array"
 

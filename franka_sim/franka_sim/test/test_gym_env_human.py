@@ -33,9 +33,10 @@ def key_callback(keycode):
 env.reset()
 
 # Create the dual viewer
-dual_viewer = DualMujocoViewer(env.unwrapped.model, env.unwrapped.data)
+# dual_viewer = DualMujocoViewer(env.unwrapped.model, env.unwrapped.data)
 
-with dual_viewer as viewer:
+# with dual_viewer as viewer:
+with  mujoco.viewer.launch_passive(env.unwrapped.model, env.unwrapped.data, show_left_ui=False, show_right_ui=False) as viewer:
     start = time.time()
     while viewer.is_running():
         if key_reset:

@@ -40,6 +40,11 @@ from experiments.mappings import CONFIG_MAPPING
 
 from octo.model.octo_model import OctoModel
 
+import mujoco.viewer
+
+from franka_sim.utils.viewer_utils import DualMujocoViewer
+
+
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string(
@@ -173,108 +178,110 @@ def actor(tasks, agent, data_store, intvn_data_store, env, sampling_rng):
     trajectory = []
 
     pbar = tqdm.tqdm(range(start_step, config.max_steps), dynamic_ncols=True)
-    for step in pbar:
-        timer.tick("total")
+    with  mujoco.viewer.launch_passive(env.unwrapped.model, env.unwrapped.data, show_left_ui=False, show_right_ui=False) as viewer:
+        for step in pbar:
+            timer.tick("total")
+            viewer.sync()
 
-        with timer.context("sample_actions"):
-            if step < config.random_steps:
-                actions = env.action_space.sample()
-            else:
-                sampling_rng, key = jax.random.split(sampling_rng)
-                actions, action_embeddings = agent.sample_actions(
-                    observations=jax.device_put(obs),
-                    tasks=jax.device_put(tasks),
-                    seed=key,
-                    argmax=False,
+            with timer.context("sample_actions"):
+                if step < config.random_steps:
+                    actions = env.action_space.sample()
+                else:
+                    sampling_rng, key = jax.random.split(sampling_rng)
+                    actions, action_embeddings = agent.sample_actions(
+                        observations=jax.device_put(obs),
+                        tasks=jax.device_put(tasks),
+                        seed=key,
+                        argmax=False,
+                    )
+                    actions = np.asarray(jax.device_get(actions))
+
+            # Step environment
+            with timer.context("step_env"):
+                next_obs, reward, done, truncated, info = env.step(actions)
+                if "left" in info:
+                    info.pop("left")
+                if "right" in info:
+                    info.pop("right")
+
+                # override the action with the intervention action
+                if "intervene_action" in info:
+                    actions = info.pop("intervene_action")
+                    intervention_steps += 1
+                    if not already_intervened:
+                        intervention_count += 1
+                    already_intervened = True
+                else:
+                    already_intervened = False
+
+                running_return += reward
+                transition = dict(
+                    observations=obs,
+                    actions=actions,
+                    next_observations=next_obs,
+                    rewards=reward,
+                    masks=1.0 - done,
+                    dones=done,
+                    intervened=already_intervened,
+                    embeddings=action_embeddings,
                 )
-                actions = np.asarray(jax.device_get(actions))
+                if 'grasp_penalty' in info:
+                    transition['grasp_penalty'] = info['grasp_penalty']
 
-        # Step environment
-        with timer.context("step_env"):
-            next_obs, reward, done, truncated, info = env.step(actions)
-            if "left" in info:
-                info.pop("left")
-            if "right" in info:
-                info.pop("right")
+                trajectory.append(transition)
 
-            # override the action with the intervention action
-            if "intervene_action" in info:
-                actions = info.pop("intervene_action")
-                intervention_steps += 1
-                if not already_intervened:
-                    intervention_count += 1
-                already_intervened = True
-            else:
-                already_intervened = False
+                obs = next_obs
+                if done or truncated:
+                    trajectory = add_mc_returns_to_trajectory(trajectory, FLAGS.gamma,
+                                                            FLAGS.reward_scale, FLAGS.reward_bias, FLAGS.reward_neg, is_sparse_reward=False
+                                                            )
+                    trajectory = add_next_embeddings_to_trajectory(trajectory)
+                    for transition in trajectory:
+                        data_store.insert(transition)
+                        transitions.append(copy.deepcopy(transition))
+                        if transition['intervened']:
+                            intvn_data_store.insert(transition)
+                            demo_transitions.append(copy.deepcopy(transition))
 
-            running_return += reward
-            transition = dict(
-                observations=obs,
-                actions=actions,
-                next_observations=next_obs,
-                rewards=reward,
-                masks=1.0 - done,
-                dones=done,
-                intervened=already_intervened,
-                embeddings=action_embeddings,
-            )
-            if 'grasp_penalty' in info:
-                transition['grasp_penalty'] = info['grasp_penalty']
+                    info["episode"]["intervention_count"] = intervention_count
+                    info["episode"]["intervention_steps"] = intervention_steps
+                    info["episode"]["succeed"] = int(info['succeed'])
+                    info["episode"]["total_steps"] = step
+                    # send stats to the learner to log
+                    stats = {"environment": info}
+                    client.request("send-stats", stats)
+                    pbar.set_description(f"last return: {running_return}")
+                    running_return = 0.0
+                    intervention_count = 0
+                    intervention_steps = 0
+                    already_intervened = False
+                    client.update()
+                    trajectory = []
+                    obs, _ = env.reset()
 
-            trajectory.append(transition)
+            if step > 0 and config.buffer_period > 0 and step % config.buffer_period == 0:
+                # dump to pickle file
+                buffer_path = os.path.join(FLAGS.checkpoint_path, "buffer")
+                demo_buffer_path = os.path.join(
+                    FLAGS.checkpoint_path, "demo_buffer")
+                if not os.path.exists(buffer_path):
+                    os.makedirs(buffer_path)
+                if not os.path.exists(demo_buffer_path):
+                    os.makedirs(demo_buffer_path)
+                with open(os.path.join(buffer_path, f"transitions_{step}.pkl"), "wb") as f:
+                    pkl.dump(transitions, f)
+                    transitions = []
+                with open(
+                    os.path.join(demo_buffer_path, f"transitions_{step}.pkl"), "wb"
+                ) as f:
+                    pkl.dump(demo_transitions, f)
+                    demo_transitions = []
 
-            obs = next_obs
-            if done or truncated:
-                trajectory = add_mc_returns_to_trajectory(trajectory, FLAGS.gamma,
-                                                          FLAGS.reward_scale, FLAGS.reward_bias, FLAGS.reward_neg, is_sparse_reward=False
-                                                          )
-                trajectory = add_next_embeddings_to_trajectory(trajectory)
-                for transition in trajectory:
-                    data_store.insert(transition)
-                    transitions.append(copy.deepcopy(transition))
-                    if transition['intervened']:
-                        intvn_data_store.insert(transition)
-                        demo_transitions.append(copy.deepcopy(transition))
+            timer.tock("total")
 
-                info["episode"]["intervention_count"] = intervention_count
-                info["episode"]["intervention_steps"] = intervention_steps
-                info["episode"]["succeed"] = int(info['succeed'])
-                info["episode"]["total_steps"] = step
-                # send stats to the learner to log
-                stats = {"environment": info}
+            if step % config.log_period == 0:
+                stats = {"timer": timer.get_average_times()}
                 client.request("send-stats", stats)
-                pbar.set_description(f"last return: {running_return}")
-                running_return = 0.0
-                intervention_count = 0
-                intervention_steps = 0
-                already_intervened = False
-                client.update()
-                trajectory = []
-                obs, _ = env.reset()
-
-        if step > 0 and config.buffer_period > 0 and step % config.buffer_period == 0:
-            # dump to pickle file
-            buffer_path = os.path.join(FLAGS.checkpoint_path, "buffer")
-            demo_buffer_path = os.path.join(
-                FLAGS.checkpoint_path, "demo_buffer")
-            if not os.path.exists(buffer_path):
-                os.makedirs(buffer_path)
-            if not os.path.exists(demo_buffer_path):
-                os.makedirs(demo_buffer_path)
-            with open(os.path.join(buffer_path, f"transitions_{step}.pkl"), "wb") as f:
-                pkl.dump(transitions, f)
-                transitions = []
-            with open(
-                os.path.join(demo_buffer_path, f"transitions_{step}.pkl"), "wb"
-            ) as f:
-                pkl.dump(demo_transitions, f)
-                demo_transitions = []
-
-        timer.tock("total")
-
-        if step % config.log_period == 0:
-            stats = {"timer": timer.get_average_times()}
-            client.request("send-stats", stats)
 
 
 ##############################################################################

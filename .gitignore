@@ -167,3 +167,19 @@ wandb
 .vscode
 .idea
 datasets/debug_dataset/bridge_dataset/1.0.0/action_*
+
+.python-version
+*.pkl
+
+# Run folders and experiment outputs (general patterns)
+*_run/
+**/run_*/
+**/*_run/
+
+# Buffer and training artifacts
+buffer/
+*/buffer/
+**/buffer/
+demo_buffer/
+*/demo_buffer/
+**/demo_buffer/

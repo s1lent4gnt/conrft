@@ -11,7 +11,7 @@ from serl_launcher.common.wandb import WandBLogger
 from serl_launcher.agents.continuous.bc import BCAgent
 from serl_launcher.agents.continuous.sac import SACAgent
 from serl_launcher.agents.continuous.sac_single import SACAgentSingleArm
-from serl_launcher.serl_launcher.agents.continuous.conrft_single_octo_cp import ConrftCPOctoAgentSingleArm
+from serl_launcher.agents.continuous.conrft_single_octo_cp import ConrftCPOctoAgentSingleArm
 from serl_launcher.vision.data_augmentations import batched_random_crop
 
 ##############################################################################

@@ -7,7 +7,7 @@
 
   <visual>
     <headlight diffuse=".4 .4 .4" ambient=".5 .5 .5"/>
-    <global azimuth="160" elevation="-20" offheight="128" offwidth="128"/>
+    <global azimuth="160" elevation="-20" offheight="256" offwidth="256"/>
     <quality offsamples="8"/>
   </visual>
 
